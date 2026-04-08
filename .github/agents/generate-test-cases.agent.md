@@ -1,7 +1,7 @@
 ---
 name: generate-test-cases
-description: Generates a comprehensive, prioritised BDD test case suite in Gherkin format from textual Acceptance Criteria, a feature description, and optional reference scenarios. Saves the output as a Markdown file in the project root. Also accepts a JIRA issue key or URL as input and fetches the required fields automatically.
-argument-hint: "JIRA issue key (e.g. PROJ-123 or https://jira.example.com/browse/PROJ-123), OR Feature description, Acceptance Criteria (numbered list), and optionally existing Gherkin scenarios"
+description: Generates a comprehensive, prioritised BDD test case suite in Gherkin format from textual Acceptance Criteria, a feature description, and optional reference scenarios. Saves the output to the test-cases-output/ folder. Also accepts a JIRA issue key or URL as input and fetches the required fields automatically. Optionally analyses .png screenshots attached directly to the prompt to enrich test coverage with visual context.
+argument-hint: "JIRA issue key (e.g. PROJ-123 or https://jira.example.com/browse/PROJ-123), OR Feature description, Acceptance Criteria (numbered list), and optionally existing Gherkin scenarios. Attach any .png screenshots directly to the prompt using the attachment icon before running."
 tools: [vscode/getProjectSetupInfo, vscode/installExtension, vscode/memory, vscode/newWorkspace, vscode/runCommand, vscode/vscodeAPI, vscode/extensions, vscode/askQuestions, execute/runNotebookCell, execute/testFailure, execute/getTerminalOutput, execute/awaitTerminal, execute/killTerminal, execute/createAndRunTask, execute/runInTerminal, execute/runTests, read/getNotebookSummary, read/problems, read/readFile, read/readNotebookCellOutput, read/terminalSelection, read/terminalLastCommand, agent/runSubagent, edit/createDirectory, edit/createFile, edit/createJupyterNotebook, edit/editFiles, edit/editNotebook, edit/rename, search/changes, search/codebase, search/fileSearch, search/listDirectory, search/searchResults, search/textSearch, search/usages, web/fetch, web/githubRepo, browser/openBrowserPage]
 ---
 
@@ -13,6 +13,7 @@ The user will provide one of the following:
   1. **DESCRIPTION** _(optional)_ — a feature or user story description
   2. **AC** _(optional)_ — acceptance criteria (numbered list or bullets)
   3. **SCENARIOS** _(optional)_ — reference Gherkin scenarios
+  4. **IMAGES** _(optional)_ — `.png` screenshot files attached directly to the prompt using the attachment icon (paperclip) in the chat input before invoking the agent; the agent will visually analyse all attached images
 
 If any input is missing, infer reasonable coverage from the others. Do not ask clarifying questions. Work autonomously.
 
@@ -45,7 +46,7 @@ Read `/memories/session/jira-auth.md` (if it exists) to check for previously res
 When credentials are already in session memory, make the API call directly:
 
 ```
-GET <JIRA_BASE_URL>/rest/api/3/issue/<ISSUE_KEY>?fields=summary,description,status,issuetype,priority,assignee,labels,fixVersions,attachment
+GET <JIRA_BASE_URL>/rest/api/3/issue/<ISSUE_KEY>?fields=summary,description,status,issuetype,priority,assignee,labels,fixVersions
 Authorization: Basic <base64("<JIRA_USER_EMAIL>:<JIRA_API_TOKEN>")>
 Content-Type: application/json
 ```
@@ -70,25 +71,32 @@ The subagent handles all authentication logic. Use the data it returns as the DE
 **On HTTP 403:** the account lacks permission to view this issue. Stop and notify the user.
 **On HTTP 404:** the issue key was not found. Stop and notify the user.
 
-### 0e — Fetch and Analyse Screenshot Attachments
+### 0e — Analyse Attached Screenshot Images
 
-After the issue is fetched, inspect `fields.attachment` (an array; may be empty or absent — handle gracefully):
+Check whether any images are present in the current conversation context (i.e. images the user attached to the prompt using the chat attachment icon before invoking the agent).
 
-1. **Filter** — keep only entries where `mimeType` starts with `image/` (e.g. `image/png`, `image/jpeg`, `image/gif`).
-2. **Download** — for each filtered attachment, fetch its binary content from the `content` URL using the same `Authorization: Basic …` header. Use the `web/fetch` tool.
-3. **Analyse** — examine each downloaded image visually. Note:
-   - UI elements, layouts, and component states visible in the screenshot
-   - Any error messages, validation states, or edge-case UI flows shown
-   - Any data, labels, or field names that appear which are not mentioned in the AC text
-4. **Record** — store your observations as **SCREENSHOTS_CONTEXT** (a bullet list of findings per image, referenced by filename).
-5. **If no image attachments exist** — set SCREENSHOTS_CONTEXT to empty and continue.
+1. **Detect** — If no images are attached to the conversation, set SCREENSHOTS_CONTEXT to empty and skip to Step 0f.
+2. **Analyse each image** — For each attached image, visually inspect it directly (no OCR or terminal commands required) and note:
+   - The **screen type** — identify what application screen or area is shown (e.g. product listing page, product detail/view-item page, checkout, modal dialog, error state)
+   - All visible **UI element labels**, button text, field names, section headings, and page titles
+   - **Price formats**, badge/tag text (exact casing), and any numeric values
+   - Any **error messages**, validation feedback, or UI state indicators
+   - Any data or UI elements **not mentioned in the AC text** that imply additional test conditions
+3. **Synthesise across all images** — treat the full set of attached screenshots as a coherent visual narrative of the same feature, not as independent documents. Each image typically captures a different screen, area, or state of the application under test. Cross-reference them with each other and with the AC and any reference scenarios to build a unified picture:
+   - **Identify the user journey** — determine what sequence of screens or application areas the images collectively illustrate (e.g. product listing → product detail → checkout)
+   - **Resolve conflicts or gaps** — if one image shows a UI element not visible in another, treat them as complementary views rather than contradictions
+   - **Map images to AC** — for each image, note which acceptance criteria its content relates to; flag any AC that has no visual evidence and any visual evidence that has no corresponding AC
+   - **Spot cross-image patterns** — e.g. a badge that appears consistently across multiple screens confirms a global rule; a badge absent in one screen but present in another may indicate a context-specific condition worth testing
+   - **Do not duplicate** — if two images show the same UI state, record it once and note both as sources
+4. **Record** — store your synthesised observations as **SCREENSHOTS_CONTEXT** (a unified bullet list of findings, with each image referenced by its position in the conversation, e.g. "Image 1", "Image 2". Do not produce a separate per-image list).
+5. **If no images are attached** — set SCREENSHOTS_CONTEXT to empty and continue.
 
 ### 0f — Map JIRA fields to inputs
 
-Once the issue data and attachments are resolved, set:
+Once the issue data is resolved, set:
 - **DESCRIPTION** ← JIRA `summary` + rendered `description`
 - **AC** ← any acceptance criteria extracted from the description (look for sections headed "Acceptance Criteria", "AC", or numbered lists)
-- **SCREENSHOTS_CONTEXT** ← visual observations from Step 0e (empty if no images)
+- **SCREENSHOTS_CONTEXT** ← visual observations from Step 0e (empty if no images were attached to the prompt)
 - **JIRA_ISSUE_KEY** ← the validated key (used in the output filename)
 
 Proceed to Step 1 using these mapped inputs.
@@ -110,10 +118,12 @@ Before writing any test cases, reason through:
    - **P2 High** — Important negative paths; data-integrity or security risk
    - **P3 Medium** — Edge cases that affect real users under realistic conditions
    - **P4 Low** — Rare edge cases, cosmetic checks, low-risk scenarios
-5. **Visual context** _(apply only when SCREENSHOTS_CONTEXT is non-empty)_ — Review the screenshot observations recorded in Step 0e. Identify any UI states, flows, field names, error messages, or edge conditions visible in the images that are absent from the AC text. Use these findings to:
-   - Add missing test cases that cover UI-only behaviours
-   - Refine step wording to match exact labels or messages shown on screen
-   - Increase or decrease priority of existing cases based on visual complexity
+5. **Visual context** _(apply only when SCREENSHOTS_CONTEXT is non-empty)_ — Review the synthesised screenshot observations recorded in Step 0e. The screenshots collectively depict different angles, screens, or areas of the same feature under test, and are intended to complement — not replace — the AC and reference scenarios. Use them to:
+   - **Fill AC gaps** — add test cases for UI states or conditions implied by the screens that the AC text does not explicitly mention
+   - **Corroborate AC** — where a screenshot directly illustrates an AC condition, use the concrete UI labels, values, and layout visible on screen to sharpen the Given/When/Then wording
+   - **Extend scenario coverage** — if the images reveal a multi-step user journey (e.g. across several screens), ensure the test suite covers transitions between those screens, not just individual states
+   - **Reconcile with reference scenarios** — if SCENARIOS were provided, verify that each reference scenario is grounded in what the screenshots show; adjust step wording or add missing steps where the visual evidence reveals additional context
+   - **Adjust priority** — increase priority when screenshots reveal a condition that is prominently surfaced in the UI; decrease priority when a visual finding is cosmetic and unlikely to affect user flow
 
 Write your analysis as an HTML comment `<!-- … -->` at the top of the test cases section in the output file.
 
@@ -172,7 +182,7 @@ Order all test cases:
 
 ## Step 5 — Save the Output File
 
-Filename: `[<JIRA_ISSUE_KEY>]test-cases-<kebab-case-feature-name><DD_MM_YYYY>.md` in the **project root**.
+Filename: `[<JIRA_ISSUE_KEY>]test-cases-<kebab-case-feature-name><DD_MM_YYYY>.md` saved inside the **`test-cases-output/`** folder in the project root.
 
 Use this exact structure:
 
@@ -220,8 +230,9 @@ Use this exact structure:
 - [ ] File is sorted P1→P4, Positive→Negative→Edge within each band
 - [ ] Summary table row count equals total test cases written
 - [ ] Coverage matrix accounts for every AC provided
-- [ ] File is saved to the project root with the correct filename
+- [ ] File is saved to `test-cases-output/` with the correct filename
 
 ## Additional Tips
 - Always create a new file for each run — do not overwrite or edit existing test case files. This preserves the history of test case generation and allows for easy comparison between iterations.
-- Never add or edit any other files except for the new test case Markdown file. Do not modify any source code, documentation, or configuration files in the project.
+- Never add or edit any other files except for the new test case Markdown file inside `test-cases-output/`. Do not modify any source code, documentation, or configuration files in the project.
+- To include screenshots as visual input, attach them directly to the prompt using the attachment icon (paperclip) in the chat input before running the agent. The agent will automatically detect and visually analyse all attached images. No folder preparation is required.

@@ -1,7 +1,6 @@
 ---
 name: confluence-auth
-description: Authenticates with the Confluence REST API using credentials from the .env file. Use this when you need a verified Confluence Basic Auth header before making any API calls.
-tools: [vscode/getProjectSetupInfo, vscode/installExtension, vscode/memory, vscode/newWorkspace, vscode/runCommand, vscode/vscodeAPI, vscode/extensions, vscode/askQuestions, execute/runNotebookCell, execute/testFailure, execute/getTerminalOutput, execute/awaitTerminal, execute/killTerminal, execute/createAndRunTask, execute/runInTerminal, execute/runTests, read/getNotebookSummary, read/problems, read/readFile, read/readNotebookCellOutput, read/terminalSelection, read/terminalLastCommand, agent/runSubagent, edit/createDirectory, edit/createFile, edit/createJupyterNotebook, edit/editFiles, edit/editNotebook, edit/rename, search/changes, search/codebase, search/fileSearch, search/listDirectory, search/searchResults, search/textSearch, search/usages, web/fetch, web/githubRepo, browser/openBrowserPage]
+description: Read Confluence credentials from .env and build a Basic Auth header. Follow these steps whenever Confluence authentication is needed before making any API calls.
 ---
 
 You are a Confluence authentication helper. Your sole responsibility is to read credentials from the `.env` file and produce a valid Confluence Basic Auth header.

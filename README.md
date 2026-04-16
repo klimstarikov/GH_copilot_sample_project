@@ -1,27 +1,27 @@
 # JIRA Test Case Generator & AI Use Case Publisher
 
-Automatically generate BDD test cases in Gherkin format from a JIRA issue, and publish AI use case justification pages to Confluence — straight from GitHub Copilot Chat in VS Code.
+Automatically generate BDD test cases in Gherkin format from a JIRA issue, and publish AI use case justification pages to Confluence — straight from Cursor Agent in VS Code or the Cursor IDE.
 
 ---
 
 ## How it works
 
-Four agents collaborate behind the scenes:
+Four Cursor rules collaborate behind the scenes:
 
-| Agent | Role |
+| Rule | Role |
 |---|---|
-| `@jira` | Reads credentials from `.env`, builds the JIRA Basic Auth header, and fetches issue data via the JIRA REST API |
-| `@generate-test-cases` | Analyses the issue (description, acceptance criteria, screenshots, and attached images), designs a prioritised BDD test suite, and saves it as a Markdown file in `test-cases-output/` |
-| `@confluence-auth` | Reads Confluence credentials from `.env`, builds the Basic Auth header, and returns it to the caller — never makes API calls itself |
-| `@create-ai-use-case-confluence` | Generates a structured AI use case justification document from a Markdown file or free text, shows a draft for approval, then publishes it as a new Confluence page |
+| `jira-auth` | Reads credentials from `.env`, builds the JIRA Basic Auth header — never makes API calls itself |
+| `@generate-test-cases` | Analyses the issue (description, acceptance criteria, screenshots), designs a prioritised BDD test suite, and saves it as a Markdown file in `test-cases-output/` |
+| `confluence-auth` | Reads Confluence credentials from `.env`, builds the Basic Auth header — never makes API calls itself |
+| `@create-ai-use-case` | Generates a structured AI use case justification document from a Markdown file or free text, shows a draft for approval, then publishes it as a new Confluence page |
 
-You only ever talk to `@generate-test-cases` or `@create-ai-use-case-confluence`. Each agent calls its auth helper automatically when it needs credentials.
+You only ever talk to `@generate-test-cases` or `@create-ai-use-case`. Each rule resolves its auth helper automatically when it needs credentials.
 
 ---
 
 ## Prerequisites
 
-- **VS Code** with the **GitHub Copilot** extension installed and signed in
+- **Cursor** (or VS Code with Cursor extension) with Agent mode enabled
 - A JIRA account with API access (Atlassian Cloud or Server)
 - An Atlassian Confluence account with API access (for AI use case publishing)
 
@@ -34,7 +34,7 @@ You only ever talk to `@generate-test-cases` or `@create-ai-use-case-confluence`
 ```bash
 git clone <repo-url>
 cd <project-folder>
-code .
+cursor .
 ```
 
 ### 2. Create your `.env` file
@@ -66,9 +66,9 @@ CONFLUENCE_API_TOKEN=your_confluence_api_token_here
 
 ## Usage
 
-### Generating BDD test cases
+Open **Cursor Agent** (or Composer in Agent mode) and type one of the following.
 
-Open **GitHub Copilot Chat** (`⌃⌘I` / `Ctrl+Alt+I`) and type one of the following:
+### Generating BDD test cases
 
 #### Option A — JIRA issue key
 
@@ -95,11 +95,11 @@ AC:
 
 #### Option D — With screenshots / images
 
-Attach one or more `.png` screenshots directly to the chat message using the **attachment icon** (paperclip) before sending. The agent will analyse the visual context and incorporate it into the test coverage.
+Attach one or more `.png` screenshots directly to the chat message before sending. The agent will analyse the visual context and incorporate it into the test coverage.
 
 ```
 @generate-test-cases PROJ-123
-[attach screenshot.png via the attachment icon]
+[attach screenshot.png]
 ```
 
 You can combine any of the options above with image attachments — e.g. a JIRA key plus a UI screenshot, or free-text acceptance criteria plus a wireframe.
@@ -111,14 +111,14 @@ You can combine any of the options above with image attachments — e.g. a JIRA 
 #### Option A — From an existing Markdown file
 
 ```
-@create-ai-use-case-confluence ai_use_case_generate-test-cases.md
+@create-ai-use-case ai_use_case_generate-test-cases.md
 ```
 
 #### Option B — From a plain-text description
 
 ```
-@create-ai-use-case-confluence
-Feature: automated BDD test generation from JIRA issues using Copilot agents
+@create-ai-use-case
+Feature: automated BDD test generation from JIRA issues using Cursor Agent rules
 ```
 
 The agent will generate a structured justification document based on `ai_use_case_template.md`, show you a draft for review, and only publish to Confluence after you type **`approved`**.
@@ -151,24 +151,22 @@ A new Confluence page is created under the **AI Use Cases** space, structured ac
 
 ```
 .
-├── .env.example                                    # Credential template — safe to commit
-├── .env                                            # Your real credentials — gitignored
+├── .env.example                          # Credential template — safe to commit
+├── .env                                  # Your real credentials — gitignored
 ├── .gitignore
 ├── README.md
-├── ai_use_case_template.md                         # Template for AI use case justification pages
-├── input-images/                                   # Optional screenshots for test case enrichment
-├── test-cases-output/                              # Generated BDD test case files
-├── .github/
-│   ├── copilot-instructions.md                     # Workspace-level Copilot instructions
-│   ├── agents/
-│   │   ├── jira.agent.md                           # JIRA auth agent
-│   │   ├── generate-test-cases.agent.md            # Test case generation agent
-│   │   ├── confluence-auth.agent.md                # Confluence auth agent
-│   │   └── create-ai-use-case-confluence.agent.md  # AI use case publishing agent
-│   ├── prompts/                                    # Reusable prompt files (*.prompt.md)
-│   ├── instructions/                               # Context-specific instructions (*.instructions.md)
-│   └── skills/                                     # Skill definitions (*.skill.md)
-└── [PROJ-123]test-cases-...md                      # Generated output files (legacy location)
+├── ai_use_case_template.md               # Template for AI use case justification pages
+├── input-images/                         # Optional screenshots for test case enrichment
+├── test-cases-output/                    # Generated BDD test case files
+└── .cursor/
+    └── rules/
+        ├── global-instructions.mdc       # Always-on workspace behaviour rules
+        ├── generate-test-cases.mdc       # Manual rule: @generate-test-cases
+        ├── create-ai-use-case.mdc        # Manual rule: @create-ai-use-case
+        ├── jira-auth.mdc                 # Agent-Requested: JIRA auth helper
+        ├── confluence-auth.mdc           # Agent-Requested: Confluence auth helper
+        ├── prompts/                      # Reusable prompt files (future)
+        └── instructions/                 # Context-specific instructions (future)
 ```
 
 ---
@@ -177,11 +175,11 @@ A new Confluence page is created under the **AI Use Cases** space, structured ac
 
 | Symptom | Fix |
 |---|---|
-| `401 Unauthorized` (JIRA) | Check `JIRA_API_TOKEN` — regenerate if needed |
-| `401 Unauthorized` (Confluence) | Check `CONFLUENCE_API_TOKEN` — regenerate if needed |
-| `404 Not Found` | Verify the issue key exists and the `JIRA_BASE_URL` is correct |
+| `401 Unauthorized` (JIRA) | Check `JIRA_API_TOKEN` in `.env` — regenerate if needed |
+| `401 Unauthorized` (Confluence) | Check `CONFLUENCE_API_TOKEN` in `.env` — regenerate if needed |
+| `404 Not Found` | Verify the issue key exists and `JIRA_BASE_URL` is correct |
 | `403 Forbidden` | Your account lacks View permission for that issue or Confluence space |
 | `409 Conflict` (Confluence) | A page with the same title already exists — the agent will append today's date and retry once |
-| Agent not found | Make sure you are using `@generate-test-cases` or `@create-ai-use-case-confluence` (with hyphens) in Copilot Chat |
+| Rule not applied | Make sure you are using `@generate-test-cases` or `@create-ai-use-case` (with hyphens) in Cursor Agent |
 | `.env` values not picked up | Ensure the file is in the workspace root and has no extra spaces around `=` |
-| Images not analysed | Attach `.png` files via the attachment icon before sending — do not paste them as file paths |
+| Images not analysed | Attach `.png` files directly to the chat message before sending |

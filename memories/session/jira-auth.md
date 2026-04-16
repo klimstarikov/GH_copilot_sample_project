@@ -1,0 +1,3 @@
+JIRA_BASE_URL=https://jiraeu.epam.com
+JIRA_USER_EMAIL=Klim_Starykau@epam.com
+JIRA_API_TOKEN=kQaprDTIOn1QYGGaXu5IVxX7ghy7hup6GPWa7q

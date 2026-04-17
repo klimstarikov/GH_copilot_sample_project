@@ -1,0 +1,44 @@
+---
+description: Independent generation flow that fetches a JIRA story and writes BDD test cases to test-cases-output.
+---
+
+Primary entrypoint for QA generation flow.
+
+Invocation examples:
+
+- `@generate-jira-test-cases EPMCDMETST-35277`
+- `@generate-jira-test-cases https://your-org.atlassian.net/browse/EPMCDMETST-35277`
+- `@generate-jira-test-cases EPMCDMETST-35277 output_tag=review1`
+
+---
+
+## Inputs
+
+- `jira_issue` (required): JIRA issue key or JIRA browse URL
+- `output_tag` (optional): suffix indicator for easier review/versioning
+
+---
+
+## Execution contract
+
+1. Resolve JIRA credentials through `jira-auth` flow or session cache.
+2. Fetch story data from JIRA API.
+3. Generate BDD markdown test cases using the same quality bar and ordering as `@generate-test-cases`.
+4. Save a new markdown file in `test-cases-output/`.
+
+Important:
+
+- Always create a new file (never overwrite).
+- Return generated file path so QA can open and edit before publishing.
+- Do not push anything to TestRail in this flow.
+
+---
+
+## Output requirements
+
+Return:
+
+- issue key resolved
+- generated file path
+- number of test cases generated
+- short next-step instruction to run `@publish-test-cases-to-testrail` after QA review

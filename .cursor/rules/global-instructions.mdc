@@ -10,9 +10,13 @@ This workspace is focused on **automated BDD test case generation** from JIRA is
 ## Rules
 
 - **`@generate-test-cases`** — primary rule. Accepts a JIRA issue key (e.g. `PROJ-123`), a JIRA issue URL, or free-text acceptance criteria. Produces a prioritised Gherkin test suite saved as a Markdown file in `test-cases-output/`.
+- **`@generate-jira-test-cases`** — primary rule. Accepts only a JIRA issue key or URL and generates a new markdown test suite in `test-cases-output/` for QA review.
+- **`@publish-test-cases-to-testrail`** — primary rule. Accepts a reviewed markdown file path and publishes mapped test cases to TestRail.
 - **`@create-ai-use-case`** — primary rule. Drafts an AI use case justification document from a Markdown file or plain text, shows a draft for approval, then publishes it as a new Confluence page.
 - **`jira-auth`** — internal auth helper. Fetched automatically by the agent when JIRA credentials are needed. Do not invoke directly.
 - **`confluence-auth`** — internal auth helper. Fetched automatically by the agent when Confluence credentials are needed. Do not invoke directly.
+- **`testrail-auth`** — internal auth helper. Reads TestRail credentials from `.env` and prepares auth headers.
+- **`transform-and-push-testrail`** — internal helper. Parses reviewed markdown test cases, maps to TestRail payloads, ensures section exists, and creates/updates cases.
 
 ## Behaviour guidelines
 

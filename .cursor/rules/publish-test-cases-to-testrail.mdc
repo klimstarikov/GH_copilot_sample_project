@@ -1,0 +1,48 @@
+---
+description: Independent publish flow that transforms a reviewed markdown file and pushes mapped cases to TestRail.
+---
+
+Primary entrypoint for QA publishing flow.
+
+Invocation example:
+
+`@publish-test-cases-to-testrail test_cases_file_path=test-cases-output/[EPMCDMETST-35277]test-cases-sales-tag15_04_2026.md testrail_project_id=12 target_folder_or_section_name="Sales Tag Regression" suite_name="Web Regression" dry_run=true`
+
+---
+
+## Inputs
+
+- `test_cases_file_path` (required): path to reviewed markdown test cases
+- `testrail_project_id` (required): target TestRail project ID
+- `target_folder_or_section_name` (required): section/folder name to use; create if missing
+- `suite_name` (optional): suite name when project has multiple suites
+- `dry_run` (optional): `true` or `false`, default `false`
+
+---
+
+## Execution contract
+
+1. Validate required inputs and file existence.
+2. Resolve TestRail credentials through `testrail-auth`.
+3. Transform markdown cases into TestRail payload format.
+4. Ensure suite and folder/section exist (create when missing).
+5. Push cases through TestRail API with duplicate-aware create/update logic.
+6. Return a publish report.
+
+Important:
+
+- This flow never fetches data from JIRA.
+- Only the provided markdown file is treated as source of truth.
+- Respect `dry_run=true` by returning preview actions without writes.
+
+---
+
+## Output requirements
+
+Return:
+
+- processed file path
+- resolved suite and section names/IDs
+- created/updated/skipped/failed counts
+- created/updated case IDs
+- warnings for parse failures or unmapped fields

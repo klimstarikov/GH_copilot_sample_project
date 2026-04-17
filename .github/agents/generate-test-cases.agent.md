@@ -2,7 +2,7 @@
 name: generate-test-cases
 description: Generates a comprehensive, prioritised BDD test case suite in Gherkin format from textual Acceptance Criteria, a feature description, and optional reference scenarios. Saves the output to the test-cases-output/ folder. Also accepts a JIRA issue key or URL as input and fetches the required fields automatically. Optionally analyses .png screenshots attached directly to the prompt to enrich test coverage with visual context.
 argument-hint: "JIRA issue key (e.g. PROJ-123 or https://jira.example.com/browse/PROJ-123), OR Feature description, Acceptance Criteria (numbered list), and optionally existing Gherkin scenarios. Attach any .png screenshots directly to the prompt using the attachment icon before running."
-tools: [vscode/getProjectSetupInfo, vscode/installExtension, vscode/memory, vscode/newWorkspace, vscode/runCommand, vscode/vscodeAPI, vscode/extensions, vscode/askQuestions, execute/runNotebookCell, execute/testFailure, execute/getTerminalOutput, execute/awaitTerminal, execute/killTerminal, execute/createAndRunTask, execute/runInTerminal, execute/runTests, read/getNotebookSummary, read/problems, read/readFile, read/readNotebookCellOutput, read/terminalSelection, read/terminalLastCommand, agent/runSubagent, edit/createDirectory, edit/createFile, edit/createJupyterNotebook, edit/editFiles, edit/editNotebook, edit/rename, search/changes, search/codebase, search/fileSearch, search/listDirectory, search/searchResults, search/textSearch, search/usages, web/fetch, web/githubRepo, browser/openBrowserPage]
+tools: [vscode/getProjectSetupInfo, vscode/installExtension, vscode/memory, vscode/newWorkspace, vscode/resolveMemoryFileUri, vscode/runCommand, vscode/vscodeAPI, vscode/extensions, vscode/askQuestions, execute/runNotebookCell, execute/testFailure, execute/getTerminalOutput, execute/killTerminal, execute/sendToTerminal, execute/createAndRunTask, execute/runInTerminal, read/getNotebookSummary, read/problems, read/readFile, read/viewImage, read/readNotebookCellOutput, read/terminalSelection, read/terminalLastCommand, agent/runSubagent, edit/createDirectory, edit/createFile, edit/createJupyterNotebook, edit/editFiles, edit/editNotebook, edit/rename, search/changes, search/codebase, search/fileSearch, search/listDirectory, search/searchResults, search/textSearch, search/usages, web/fetch, web/githubRepo, browser/openBrowserPage]
 ---
 
 You are a senior QA engineer specialising in BDD test design.
@@ -46,7 +46,7 @@ Read `/memories/session/jira-auth.md` (if it exists) to check for previously res
 When credentials are already in session memory, make the API call directly:
 
 ```
-GET <JIRA_BASE_URL>/rest/api/3/issue/<ISSUE_KEY>?fields=summary,description,status,issuetype,priority,assignee,labels,fixVersions
+GET <JIRA_BASE_URL>/rest/api/3/issue/<ISSUE_KEY>?fields=summary,description,status,issuetype,priority,assignee,labels,fixVersions,attachments
 Authorization: Basic <base64("<JIRA_USER_EMAIL>:<JIRA_API_TOKEN>")>
 Content-Type: application/json
 ```
